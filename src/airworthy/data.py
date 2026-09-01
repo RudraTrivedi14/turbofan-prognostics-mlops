@@ -30,3 +30,22 @@ def add_rul(df: pd.DataFrame) -> pd.DataFrame:
     max_cycle_per_engine = df.groupby("unit_number")["time_cycles"].transform("max")
     df["RUL"] = max_cycle_per_engine - df["time_cycles"]
     return df
+
+
+def add_test_rul(
+    test_df: pd.DataFrame, rul_dir: str = "data/raw", dataset_id: str = "FD001"
+) -> pd.DataFrame:
+    """Attach RUL to a *test* dataframe using the separate RUL_FD00X.txt file.
+
+    That file has one row per engine: the true RUL at the cycle where the
+    test trajectory was cut off (engines are NOT run to failure in test).
+    """
+    rul_path = Path(rul_dir) / f"RUL_{dataset_id}.txt"
+    final_rul = pd.read_csv(rul_path, header=None, names=["RUL"])
+    final_rul["unit_number"] = final_rul.index + 1
+
+    df = test_df.copy()
+    max_cycle_per_engine = df.groupby("unit_number")["time_cycles"].transform("max")
+    final_rul_per_row = df["unit_number"].map(final_rul.set_index("unit_number")["RUL"])
+    df["RUL"] = final_rul_per_row + (max_cycle_per_engine - df["time_cycles"])
+    return df

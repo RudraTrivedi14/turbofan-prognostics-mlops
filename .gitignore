@@ -9,3 +9,4 @@ models/*.pkl
 mlruns/
 .env
 .DS_Store
+.git_broken/
