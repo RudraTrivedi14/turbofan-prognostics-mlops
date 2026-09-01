@@ -49,3 +49,24 @@ def add_test_rul(
     final_rul_per_row = df["unit_number"].map(final_rul.set_index("unit_number")["RUL"])
     df["RUL"] = final_rul_per_row + (max_cycle_per_engine - df["time_cycles"])
     return df
+
+
+def load_dataset(dataset_id: str, split: str, raw_dir: str = "data/raw") -> pd.DataFrame:
+    """Load a fully-labeled C-MAPSS dataframe, with RUL attached.
+
+    This is the one function the rest of the project should call — it
+    picks the right RUL strategy depending on whether split is "train"
+    (computed from run-to-failure data) or "test" (from the ground-truth
+    RUL file). Validates split BEFORE touching the filesystem, so a bad
+    value fails fast with a clear message instead of a confusing
+    FileNotFoundError.
+    """
+    if split not in ("train", "test"):
+        raise ValueError(f"split must be 'train' or 'test', got {split!r}")
+
+    df = load_raw(dataset_id, split, raw_dir)
+    if split == "train":
+        df = add_rul(df)
+    else:
+        df = add_test_rul(df, raw_dir, dataset_id)
+    return df
